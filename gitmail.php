@@ -1,15 +1,24 @@
 <?php
-// gitmail.php <path-to-git> <path-to-repo> <commit>
-// E.g.,  php gitmail.php 'H:/Programs/Git/bin/git.exe' 'H:\\path\\to\\reponame\\.git' HEAD
+// gitmail.php <path-to-git> <path-to-repo>
+// E.g.,  php gitmail.php 'H:/Programs/Git/bin/git.exe' 'H:\\path\\to\\reponame\\.git'
 
 require "Git.php";
 require "class.phpmailer-lite.php";
 
-if ($argc != 4)
+if ($argc != 3)
     die("Wrong usage.\n");
 
 $git = new Git($argv[2], $argv[1]);
-$commit = $git->getCommit($argv[3], true);
+
+// Find all the branches, and then select the one with the latest commit date
+$commit = null;
+$branches = $git->getBranches();
+foreach (array_keys($branches) as $b)
+{
+    $head_commit = $git->getCommit($b, true);
+    if (empty($commit) || $commit->date < $head_commit->date)
+        $commit = $git->getCommit($b, true); 
+}
 
 $html = '';
 
@@ -85,8 +94,8 @@ ob_start();
 		</tr>
 		<tr>
 			<td style="font-weight:bold;background: #369;color: #fff;<?php echo $font ?>">Commit</td>
-			<td style="background: #369;color: #fff;<?php echo $font ?>"><?php echo substr($commit->commit, 0, 7) ?>...</td>
-		</tr>		
+			<td style="background: #369;color: #fff;<?php echo $font ?>"><?php echo substr($commit->commit, 0, 7) ?>... (<?php echo $commit->branch ?>)</td>
+		</tr>	
 	</table>
 
 	<h3 style="<?php echo $font ?>font-weight: bold;">Log Message</h3>
