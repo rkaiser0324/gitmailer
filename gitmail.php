@@ -6,7 +6,7 @@ require "Git.php";
 require "class.phpmailer-lite.php";
 
 if ($argc != 3)
-    die("Wrong usage.\n");
+    die("Syntax: gitmail.php <path-to-git> <path-to-repo>\n");
 
 $git = new Git($argv[2], $argv[1]);
 
@@ -81,22 +81,25 @@ ob_start();
     <head><title><?php echo $commit->title ?></title></head>
 <body>
     
-	<table width="100%" cellpadding="4" cellspacing="0" border="0">
-		<tr>
-			<td style="font-weight:bold;background: #369;color: #fff;<?php echo $font ?>">Committer</td>
-			<td style="background: #369;color: #fff;<?php echo $font ?>"><?php echo $commit->author ?></td>
-		</tr>
-		<tr>
-			<td style="font-weight:bold;background: #369;color: #fff;<?php echo $font ?>">Authored Date</td>
-			<td style="background: #369;color: #fff;<?php echo $font ?>"><?php 
-			echo strftime('%A, %B %d %Y %I:%M %p', strtotime($commit->date));
-			?></td>
-		</tr>
-		<tr>
-			<td style="font-weight:bold;background: #369;color: #fff;<?php echo $font ?>">Commit</td>
-			<td style="background: #369;color: #fff;<?php echo $font ?>"><?php echo substr($commit->commit, 0, 7) ?>... (<?php echo $commit->branch ?>)</td>
-		</tr>	
-	</table>
+	<div style="border:1px solid #ddd">
+		<table width="100%" cellpadding="4" cellspacing="0" border="0">
+			<tr>
+				<td style="font-weight:bold;background: #eee;<?php echo $font ?>">Committer</td>
+				<td style="background: #eee;<?php echo $font ?>"><?php echo $commit->author ?></td>
+			</tr>
+			<tr>
+				<td style="font-weight:bold;background: #eee;<?php echo $font ?>">Authored Date</td>
+				<td style="background: #eee;<?php echo $font ?>"><?php 
+				$dateTime = new DateTime($commit->date . ' UTC');
+				$dateTime->setTimezone(new DateTimeZone('America/Los_Angeles'));
+				echo $dateTime->format('Y-m-d H:i:s'); ?></td>
+			</tr>
+			<tr>
+				<td style="font-weight:bold;background: #eee;<?php echo $font ?>">Commit</td>
+				<td style="background: #eee;<?php echo $font ?>"><?php echo substr($commit->commit, 0, 7) ?>... (<?php echo $commit->branch ?>)</td>
+			</tr>	
+		</table>
+	</div>
 
 	<h3 style="<?php echo $font ?>font-weight: bold;">Log Message</h3>
 	<pre style="<?php echo $font ?>background: #ffc; border: 1px #fa0 solid; padding: 6px"><?php echo htmlspecialchars($commit->title) ?></pre>
@@ -151,6 +154,6 @@ $mail->AltBody = $prefix . ' ' . $commit->title;
 $mail->MsgHTML($output);
 
 if ($mail->Send())
-	echo "Mail sent\n";
+	echo "Git notification email sent.\n";
 else 
-	echo "Mail not sent\n";
+	echo "Git notification email not sent.\n";
