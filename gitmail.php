@@ -9,6 +9,7 @@ if ($argc != 3)
     die("Syntax: gitmail.php <path-to-git> <path-to-repo>\n");
 
 $git = new Git($argv[2], $argv[1]);
+$do_syntax_highlighting = true;
 
 // Find all the branches, and then select the one with the latest commit date
 $commit = null;
@@ -60,17 +61,46 @@ for ($i = 0; $i < count($commit->modified); $i++)
 
 	$lines = explode("\n", $file['diff']);
 
+	if ( $do_syntax_highlighting ) {
+		// Assign a syntax-highlighting function based on the file extension.
+		switch (strtolower(pathinfo($file['filename'], PATHINFO_EXTENSION))) {
+
+			// Built-in PHP highlight_string function
+			case 'php':	$highlight_fxn = function($x) {
+						$x = highlight_string("<?php $x", true);
+						return preg_replace('/&lt;\?php&nbsp;/ms', '', $x, 1);
+					};
+					break;
+
+			// Just the identity function
+			default:	$highlight_fxn = function($x) { return $x; };
+					break;
+		}
+	} else {
+		// Just the identity function
+		$highlight_fxn = function($x) { return $x; };
+	}
+
 	foreach ($lines as $el)
 	{
-		$style = 'padding:0 10px;';
-		if (preg_match('/^(---|\+\+\+|@@) (.*)$/', $el)) {
-			$style .= 'background:#fff';
-		} elseif (preg_match('/^-(.*)$/', $el)) {
-			$style .= 'background:#fdd;text-decoration:line-through';
-		} elseif (preg_match("/^\+(.*)$/", $el)) {
-			$style .= 'background:#dfd';
+		$styles = array (
+			'padding:0 10px',
+			'white-space: normal',
+		);
+		if (preg_match('/^(---|\+\+\+|@@) (.*)$/', $el, $match)) {
+			$styles[] = 'background:#fff';
+			$line = $el;
+		} elseif (preg_match('/^(-)(.*)$/', $el, $match)) {
+			$styles[] = 'background:#fdd';
+			$line = $match[1] . $highlight_fxn($match[2]);
+		} elseif (preg_match("/^(\+)(.*)$/", $el, $match)) {
+			$styles[] = 'background:#dfd';
+			$line = $match[1] . $highlight_fxn($match[2]);
+		} else {
+			$line = $highlight_fxn($el);
 		}
-		$html .= '<div style="' . $style . '">' . htmlspecialchars($el) . "</div\n>";
+
+		$html .= '<div style="' . implode(';',$styles) . '">' . $line . "</div\n>";
 	}
 	$html .= '</pre></div><br/>';
 }
@@ -138,6 +168,7 @@ ob_start();
 <?php
 $output = ob_get_contents();
 ob_end_clean();
+
 
 $mail = new PHPMailerLite();
 $mail->SetFrom($git->getConfigValue('hooks.envelopesender'));
